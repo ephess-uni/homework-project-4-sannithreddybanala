@@ -6,29 +6,60 @@ from collections import defaultdict
 
 
 def reformat_dates(old_dates):
-    """Accepts a list of date strings in format yyyy-mm-dd, re-formats each
-    element to a format dd mmm yyyy--01 Jan 2001."""
-    pass
-
+    new_formated_dates=[]
+    for date in old_dates:
+        new_date = datetime.strptime(date, '%Y-%m-%d').strftime('%d %b %Y') 
+        new_formated_dates.append(new_date)
+    return new_formated_dates
 
 def date_range(start, n):
-    """For input date string `start`, with format 'yyyy-mm-dd', returns
-    a list of of `n` datetime objects starting at `start` where each
-    element in the list is one day after the previous."""
-    pass
+    date_range_objects = []
+    if not isinstance(start, str):
+        raise TypeError
+    elif not isinstance(n, int):
+        raise TypeError
+    else:
+        start_date = datetime.strptime(start, '%Y-%m-%d')
+        for i in range(n):
+            date_range_objects.append(start_date+timedelta(days=+i))
+    return date_range_objects
 
 
 def add_date_range(values, start_date):
-    """Adds a daily date range to the list `values` beginning with
-    `start_date`.  The date, value pairs are returned as tuples
-    in the returned list."""
-    pass
-
+    expected_dates = date_range(start_date, len(values))
+    expected = list(zip(expected_dates, values))
+    return expected
 
 def fees_report(infile, outfile):
-    """Calculates late fees per patron id and writes a summary report to
-    outfile."""
-    pass
+    with open(infile) as fi:
+        rows=[]
+        input_dict = DictReader(fi)
+        for item in input_dict:
+            row={}
+            num_of_days=(datetime.strptime(item['date_returned'],'%m/%d/%Y')- datetime.strptime(item['date_due'],'%m/%d/%Y')).days
+            if(num_of_days>0):
+                row["patron_id"]=item['patron_id']
+                row["late_fees"]=round(num_of_days*0.25, 2)
+            else:
+                row["patron_id"]=item['patron_id']
+                row["late_fees"]=0.00
+            rows.append(row)
+        aggregated_output = {}
+        for row in rows :
+            key = (row['patron_id'])
+            aggregated_output[key] = aggregated_output.get(key, 0) + row['late_fees']
+        fee = [{'patron_id': key, 'late_fees': value} for key, value in aggregated_output.items()]
+        for ele in fee:
+            for k,v in ele.items():
+                if k == "late_fees":
+                    if len(str(v).split('.')[-1]) != 2:
+                        ele[k] = str(v)+'0'
+
+    with open(outfile,"w", newline="") as file:
+        cols = ['patron_id', 'late_fees']
+        writer = DictWriter(file, fieldnames=cols)
+        writer.writeheader()
+        writer.writerows(fee)
 
 
 # The following main selection block will only run when you choose
